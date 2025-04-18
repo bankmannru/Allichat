@@ -44,6 +44,7 @@ import {
   MenuItem,
   ListItemIcon,
   Badge,
+  CircularProgress,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -61,6 +62,8 @@ import {
   Settings as SettingsIcon,
   AdminPanelSettings as AdminIcon,
   Add as AddIcon,
+  Image as ImageIcon,
+  AttachFile as AttachFileIcon,
 } from '@mui/icons-material';
 
 interface Message {
@@ -69,6 +72,8 @@ interface Message {
   senderId: string;
   timestamp: any;
   roomId: string;
+  image?: string; // Base64 encoded image
+  isImage?: boolean;
 }
 
 interface Announcement {
@@ -124,6 +129,9 @@ const Chat: React.FC = () => {
   const [sudoMessage, setSudoMessage] = useState('');
   const [newChatDialogOpen, setNewChatDialogOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [newImage, setNewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -208,7 +216,7 @@ const Chat: React.FC = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !currentRoom || !currentUser) return;
+    if ((!newMessage.trim() && !newImage) || !currentRoom || !currentUser) return;
 
     const currentUserData = users.find(u => u.displayName === currentUser.displayName);
     if (currentUserData?.isBanned) {
@@ -225,9 +233,12 @@ const Chat: React.FC = () => {
         content: newMessage,
         senderId: currentUser.displayName,
         timestamp: serverTimestamp(),
-        roomId: currentRoom.id
+        roomId: currentRoom.id,
+        image: newImage || null,
+        isImage: !!newImage
       });
       setNewMessage('');
+      setNewImage(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -344,6 +355,82 @@ const Chat: React.FC = () => {
     } catch (error) {
       console.error('Error creating private chat:', error);
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Размер файла не должен превышать 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    
+    // Create a new image object
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      // Create canvas for compression
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        setIsUploading(false);
+        return;
+      }
+      
+      // Calculate new dimensions (max 800px width/height)
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > 800 || height > 800) {
+        if (width > height) {
+          height = Math.round((height * 800) / width);
+          width = 800;
+        } else {
+          width = Math.round((width * 800) / height);
+          height = 800;
+        }
+      }
+      
+      // Set canvas dimensions
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw image on canvas with new dimensions
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convert to base64 with compression
+      const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+      
+      setNewImage(base64Image);
+      setIsUploading(false);
+    };
+    
+    img.onerror = () => {
+      setIsUploading(false);
+      alert('Ошибка при загрузке изображения');
+    };
+  };
+
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const removeImage = () => {
+    setNewImage(null);
   };
 
   return (
@@ -575,6 +662,20 @@ const Chat: React.FC = () => {
                   >
                     {message.senderId}
                   </Typography>
+                  {message.isImage && message.image ? (
+                    <Box sx={{ mt: 0.5, mb: 0.5 }}>
+                      <img 
+                        src={message.image} 
+                        alt="Image" 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '300px', 
+                          borderRadius: '4px',
+                          objectFit: 'contain'
+                        }} 
+                      />
+                    </Box>
+                  ) : null}
                   <Typography sx={{ 
                     wordBreak: 'break-word',
                     fontSize: '0.9rem',
@@ -600,7 +701,49 @@ const Chat: React.FC = () => {
             borderColor: 'divider',
           }}
         >
+          {newImage && (
+            <Box sx={{ mb: 1, position: 'relative', display: 'inline-block' }}>
+              <img 
+                src={newImage} 
+                alt="Preview" 
+                style={{ 
+                  maxWidth: '200px', 
+                  maxHeight: '200px', 
+                  borderRadius: '8px',
+                  objectFit: 'contain'
+                }} 
+              />
+              <IconButton
+                size="small"
+                onClick={removeImage}
+                sx={{
+                  position: 'absolute',
+                  top: -8,
+                  right: -8,
+                  bgcolor: 'background.paper',
+                  boxShadow: 1,
+                  '&:hover': { bgcolor: 'grey.200' }
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          )}
           <Box sx={{ display: 'flex', gap: 1 }}>
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+            />
+            <IconButton 
+              color="primary"
+              onClick={handleImageClick}
+              disabled={isUploading}
+            >
+              {isUploading ? <CircularProgress size={24} /> : <ImageIcon />}
+            </IconButton>
             <TextField
               fullWidth
               value={newMessage}
@@ -612,6 +755,7 @@ const Chat: React.FC = () => {
             <IconButton 
               type="submit" 
               color="primary"
+              disabled={isUploading}
             >
               <SendIcon />
             </IconButton>
