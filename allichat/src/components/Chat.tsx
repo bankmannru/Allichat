@@ -60,6 +60,7 @@ import {
   Terminal as TerminalIcon,
   Settings as SettingsIcon,
   AdminPanelSettings as AdminIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 
 interface Message {
@@ -85,6 +86,8 @@ interface Room {
   name: string;
   type: 'group' | 'direct';
   participants: string[];
+  createdAt?: any;
+  createdBy?: string;
 }
 
 interface User {
@@ -119,6 +122,8 @@ const Chat: React.FC = () => {
   const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
   const [sudoDialogOpen, setSudoDialogOpen] = useState(false);
   const [sudoMessage, setSudoMessage] = useState('');
+  const [newChatDialogOpen, setNewChatDialogOpen] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -306,6 +311,41 @@ const Chat: React.FC = () => {
     }
   };
 
+  const createPrivateChat = async (recipientName: string) => {
+    if (!currentUser) return;
+
+    // Check if chat already exists
+    const existingChat = rooms.find(room => 
+      room.type === 'direct' && 
+      room.participants.includes(currentUser.displayName) && 
+      room.participants.includes(recipientName)
+    );
+
+    if (existingChat) {
+      setCurrentRoom(existingChat);
+      setNewChatDialogOpen(false);
+      if (isMobile) setDrawerOpen(false);
+      return;
+    }
+
+    try {
+      const chatRoom: Omit<Room, 'id'> = {
+        name: recipientName,
+        type: 'direct' as const,
+        participants: [currentUser.displayName, recipientName],
+        createdAt: serverTimestamp(),
+        createdBy: currentUser.displayName
+      };
+
+      const docRef = await addDoc(collection(db, 'rooms'), chatRoom);
+      setNewChatDialogOpen(false);
+      setCurrentRoom({ id: docRef.id, ...chatRoom });
+      if (isMobile) setDrawerOpen(false);
+    } catch (error) {
+      console.error('Error creating private chat:', error);
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <Drawer
@@ -325,6 +365,14 @@ const Chat: React.FC = () => {
           <List>
             <ListItem>
               <Typography variant="h6" sx={{ flexGrow: 1 }}>Чаты</Typography>
+              <IconButton 
+                color="primary"
+                size="small"
+                onClick={() => setNewChatDialogOpen(true)}
+                sx={{ mr: 1 }}
+              >
+                <AddIcon />
+              </IconButton>
               {currentUser?.role === 'admin' && (
                 <IconButton 
                   color="primary" 
@@ -367,7 +415,9 @@ const Chat: React.FC = () => {
                     )}
                   </Box>
                 )}
-                <ListItemText primary={room.name} />
+                <ListItemText 
+                  primary={room.type === 'group' ? room.name : room.participants.find(p => p !== currentUser?.displayName)} 
+                />
               </ListItemButton>
             ))}
           </List>
@@ -771,6 +821,61 @@ const Chat: React.FC = () => {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      <Dialog
+        open={newChatDialogOpen}
+        onClose={() => setNewChatDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Новый чат</DialogTitle>
+        <DialogContent>
+          <List>
+            {users
+              .filter(user => user.displayName !== currentUser?.displayName)
+              .map(user => (
+                <ListItemButton
+                  key={user.displayName}
+                  onClick={() => createPrivateChat(user.displayName)}
+                >
+                  <ListItemIcon>
+                    <Box sx={{ position: 'relative' }}>
+                      {user.role === 'admin' ? (
+                        <AdminIcon color="primary" />
+                      ) : (
+                        <PersonIcon />
+                      )}
+                      {user.isOnline && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: -2,
+                            right: -2,
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: '#44b700',
+                            border: '2px solid #fff'
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={user.displayName}
+                    secondary={user.isOnline ? 'В сети' : 'Не в сети'}
+                    secondaryTypographyProps={{
+                      sx: { color: user.isOnline ? 'success.main' : 'text.secondary' }
+                    }}
+                  />
+                </ListItemButton>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewChatDialogOpen(false)}>Закрыть</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
