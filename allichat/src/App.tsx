@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Chat from './components/Chat';
+import Subteams from './components/Subteams';
 
 const theme = createTheme({
   palette: {
@@ -32,6 +33,14 @@ const App: React.FC = () => {
               element={
                 <PrivateRoute>
                   <Chat />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/subteams"
+              element={
+                <PrivateRoute>
+                  <Subteams />
                 </PrivateRoute>
               }
             />

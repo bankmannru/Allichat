@@ -1,0 +1,82 @@
+{
+    "users": {
+      "Ахмед": {
+        "displayName": "Ахмед",
+        "secretCode": "ahmed123",
+        "role": "admin",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Ахмед"]
+      },
+      "Ахмад": {
+        "displayName": "Ахмад",
+        "secretCode": "ahmad123",
+        "role": "user",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Ахмад"]
+      },
+      "Назира": {
+        "displayName": "Назира",
+        "secretCode": "nazira123",
+        "role": "user",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Назира"]
+      },
+      "Абзагир": {
+        "displayName": "Абзагир",
+        "secretCode": "abzagir123",
+        "role": "user",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Абзагир"]
+      },
+      "Омар": {
+        "displayName": "Омар",
+        "secretCode": "omar123",
+        "role": "user",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Омар"]
+      },
+      "Амиран": {
+        "displayName": "Амиран",
+        "secretCode": "amiran123",
+        "role": "user",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Амиран"]
+      },
+      "Даниил": {
+        "displayName": "Даниил",
+        "secretCode": "daniil123",
+        "role": "user",
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Даниил", "Даня"]
+      },
+      "Мухаммад": {
+        "displayName": "Мухаммад",
+        "secretCode": "muhammad123",
+        "role": "user", 
+        "lastLogin": null,
+        "isOnline": false,
+        "allowedNames": ["Мухаммад"]
+      }
+    },
+    "rooms": {
+      "general": {
+        "name": "Общий чат",
+        "createdBy": "Ахмед",
+        "createdAt": null,
+        "type": "group",
+        "participants": ["Ахмед", "Ахмад", "Назира", "Абзагир", "Омар", "Амиран", "Даниил"],
+        "lastMessage": {
+          "content": "Добро пожаловать в чат!",
+          "timestamp": null,
+          "senderId": "Ахмед"
+        }
+      }
+    }
+  } 

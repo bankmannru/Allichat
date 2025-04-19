@@ -3,16 +3,22 @@ import { db } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 interface User {
+  id: string;
   displayName: string;
   role: string;
   isOnline: boolean;
+  isMuted?: boolean;
+  isBanned?: boolean;
   allowedNames: string[];
+  lastSeen?: any;
+  isTyping?: { [roomId: string]: boolean };
 }
 
 interface AuthContextType {
   currentUser: User | null;
   login: (name: string, secretCode: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  setCurrentUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,10 +54,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       setCurrentUser({
+        id: name,
         displayName: userData.displayName,
         role: userData.role,
         isOnline: true,
-        allowedNames: userData.allowedNames
+        isMuted: userData.isMuted || false,
+        isBanned: userData.isBanned || false,
+        allowedNames: userData.allowedNames,
+        lastSeen: userData.lastSeen,
+        isTyping: userData.isTyping || {}
       });
 
       return true;
@@ -86,7 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     currentUser,
     login,
-    logout
+    logout,
+    setCurrentUser
   };
 
   return (
